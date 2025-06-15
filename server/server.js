@@ -1,82 +1,77 @@
+// main.js
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 
-// Import routes
-import authRoutes from './routes/auth.js';
-import taskRoutes from './routes/tasks.js';
-
-// Import middleware
+import connectDB from './config/database.js';
+import authRoutes from './routes/authRoutes.js';
+import taskRoutes from './routes/tasksRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { startNotificationScheduler } from './services/notificationScheduler.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Security middleware
+// ─────── Connect to DB ───────
+connectDB();
+
+// ─────── Middleware ───────
 app.use(helmet());
 
-// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: 'Too many requests from this IP, please try again later.',
 });
 app.use(limiter);
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-frontend-domain.com'] 
-    : ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true,
-}));
+// Enhanced CORS configuration
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173", "http://127.0.0.1:3000"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  }),
+)
 
-// Body parsing middleware
+// Handle preflight requests
+app.options("*", cors())
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/taskmanager')
-  .then(() => {
-    console.log('✅ Connected to MongoDB');
-  })
-  .catch((error) => {
-    console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
-  });
-
-// Routes
+// ─────── Routes ───────
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 
-// Health check endpoint
+// ─────── Health Check ───────
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    success: true,
+    message: 'Task Management API is running',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 
-// 404 handler
+// ─────── 404 & Error Handling ───────
 app.use('*', (req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    message: 'Route not found' 
-  });
+  res.status(404).json({ success: false, message: 'Route not found' });
 });
-
-// Error handling middleware (must be last)
 app.use(errorHandler);
 
+// ─────── Start Server ───────
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Start background jobs
+  startNotificationScheduler();
 });
 
 export default app;

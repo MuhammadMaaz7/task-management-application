@@ -1,28 +1,28 @@
-import axios from 'axios';
+import axios from "axios"
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-});
+})
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token")
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`
     }
-    return config;
+    return config
   },
   (error) => {
-    return Promise.reject(error);
-  }
-);
+    return Promise.reject(error)
+  },
+)
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
@@ -30,72 +30,154 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
+      window.location.href = "/login"
     }
-    return Promise.reject(error);
-  }
-);
+    return Promise.reject(error)
+  },
+)
 
 // Auth API
 export const authAPI = {
-  register: (userData: { email: string; password: string; name?: string }) =>
-    api.post('/auth/register', userData),
-  
-  login: (credentials: { email: string; password: string }) =>
-    api.post('/auth/login', credentials),
-  
-  getProfile: () =>
-    api.get('/auth/profile'),
-  
-  updateProfile: (data: { name: string }) =>
-    api.put('/auth/profile', data),
-  
-  logout: () =>
-    api.post('/auth/logout'),
-};
+  register: (userData: { email: string; password: string; name?: string }) => api.post("/auth/register", userData),
+
+  login: (credentials: { email: string; password: string }) => api.post("/auth/login", credentials),
+
+  getProfile: () => api.get("/auth/profile"),
+
+  updateProfile: (data: { name: string }) => api.put("/auth/profile", data),
+
+  logout: () => api.post("/auth/logout"),
+}
 
 // Tasks API
 export const tasksAPI = {
   getTasks: (params?: {
-    status?: string;
-    priority?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: string;
-  }) => api.get('/tasks', { params }),
-  
-  getTask: (id: string) =>
-    api.get(`/tasks/${id}`),
-  
-  createTask: (taskData: {
-    title: string;
-    description?: string;
-    priority?: 'low' | 'medium' | 'high';
-    dueDate?: string;
-    tags?: string[];
-  }) => api.post('/tasks', taskData),
-  
-  updateTask: (id: string, taskData: {
-    title?: string;
-    description?: string;
-    status?: 'pending' | 'completed';
-    priority?: 'low' | 'medium' | 'high';
-    dueDate?: string;
-    tags?: string[];
-  }) => api.put(`/tasks/${id}`, taskData),
-  
-  deleteTask: (id: string) =>
-    api.delete(`/tasks/${id}`),
-  
-  toggleTask: (id: string) =>
-    api.patch(`/tasks/${id}/toggle`),
-  
-  getStats: () =>
-    api.get('/tasks/stats'),
-};
+    status?: string
+    priority?: string
+    search?: string
+    page?: number
+    limit?: number
+    sortBy?: string
+    sortOrder?: string
+  }) => api.get("/tasks", { params }),
 
-export default api;
+  getTask: (id: string) => api.get(`/tasks/${id}`),
+
+  createTask: (taskData: {
+    title: string
+    description?: string
+    priority?: "low" | "medium" | "high"
+    dueDate?: string
+    tags?: string[]
+    assignedTo?: string
+    shareWith?: Array<{ email: string; permission: "view" | "edit" }>
+  }) => api.post("/tasks", taskData),
+
+  updateTask: (
+    id: string,
+    taskData: {
+      title?: string
+      description?: string
+      status?: "pending" | "completed"
+      priority?: "low" | "medium" | "high"
+      dueDate?: string
+      tags?: string[]
+      assignedTo?: string
+    },
+  ) => api.put(`/tasks/${id}`, taskData),
+
+  deleteTask: (id: string) => api.delete(`/tasks/${id}`),
+
+  toggleTask: (id: string) => api.patch(`/tasks/${id}/toggle`),
+
+  getStats: () => api.get("/tasks/stats"),
+
+  // Reordering
+  reorderTasks: (taskIds: string[]) => api.post("/tasks/reorder", { taskIds }),
+
+  // Sharing
+  shareTask: (id: string, userEmails: string[], permission: "view" | "edit" = "view") =>
+    api.post(`/tasks/${id}/share`, { userEmails, permission }),
+
+  unshareTask: (id: string, userEmail: string) => api.post(`/tasks/${id}/unshare`, { userEmail }),
+
+  // Activity and comments
+  getTaskActivity: (id: string) => api.get(`/tasks/${id}/activity`),
+
+  addTaskComment: (id: string, comment: string) => api.post(`/tasks/${id}/comment`, { comment }),
+
+  // Export functions
+  exportCSV: (params?: {
+    status?: string
+    priority?: string
+    search?: string
+  }) => {
+    const token = localStorage.getItem("token")
+    const queryParams = new URLSearchParams()
+
+    if (params?.status) queryParams.append("status", params.status)
+    if (params?.priority) queryParams.append("priority", params.priority)
+    if (params?.search) queryParams.append("search", params.search)
+
+    const url = `${API_BASE_URL}/tasks/export/csv?${queryParams.toString()}`
+
+    return fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Export failed")
+        return response.blob()
+      })
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.download = `tasks-export-${new Date().toISOString().split("T")[0]}.csv`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      })
+  },
+
+  exportPDF: (params?: {
+    status?: string
+    priority?: string
+    search?: string
+  }) => {
+    const token = localStorage.getItem("token")
+    const queryParams = new URLSearchParams()
+
+    if (params?.status) queryParams.append("status", params.status)
+    if (params?.priority) queryParams.append("priority", params.priority)
+    if (params?.search) queryParams.append("search", params.search)
+
+    const url = `${API_BASE_URL}/tasks/export/pdf?${queryParams.toString()}`
+
+    return fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Export failed")
+        return response.blob()
+      })
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.download = `tasks-export-${new Date().toISOString().split("T")[0]}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      })
+  },
+}
+
+export default api
