@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    image: ${DOCKERHUB_USERNAME}/${DOCKERHUB_USERNAME}-TaskManagement-backend:latest
+    image: ${DOCKERHUB_USERNAME}/task-management-backend:latest
     build: 
       context: ./server
       dockerfile: Dockerfile
@@ -24,7 +24,7 @@ services:
       - /app/node_modules
 
   frontend:
-    image: ${DOCKERHUB_USERNAME}/${DOCKERHUB_USERNAME}-TaskManagement-frontend:latest
+    image: ${DOCKERHUB_USERNAME}/task-management-frontend:latest
     build:
       context: ./client
       dockerfile: Dockerfile
