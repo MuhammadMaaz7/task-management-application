@@ -1,10 +1,7 @@
 import axios from "axios"
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
-
-// Create axios instance
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -101,83 +98,25 @@ export const tasksAPI = {
   shareTask: (id: string, userEmails: string[], permission: "view" | "edit" = "view") =>
     api.post(`/tasks/${id}/share`, { userEmails, permission }),
 
-  unshareTask: (id: string, userEmail: string) => api.post(`/tasks/${id}/unshare`, { userEmail }),
+  unshareTask: (id: string, userEmail: string) => api.delete(`/tasks/${id}/share`, { data: { userEmail } }),
 
   // Activity and comments
   getTaskActivity: (id: string) => api.get(`/tasks/${id}/activity`),
 
-  addTaskComment: (id: string, comment: string) => api.post(`/tasks/${id}/comment`, { comment }),
+  addTaskComment: (id: string, comment: string) => api.post(`/tasks/${id}/comments`, { comment }),
 
   // Export functions
   exportCSV: (params?: {
     status?: string
     priority?: string
     search?: string
-  }) => {
-    const token = localStorage.getItem("token")
-    const queryParams = new URLSearchParams()
-
-    if (params?.status) queryParams.append("status", params.status)
-    if (params?.priority) queryParams.append("priority", params.priority)
-    if (params?.search) queryParams.append("search", params.search)
-
-    const url = `${API_BASE_URL}/tasks/export/csv?${queryParams.toString()}`
-
-    return fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Export failed")
-        return response.blob()
-      })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement("a")
-        link.href = url
-        link.download = `tasks-export-${new Date().toISOString().split("T")[0]}.csv`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-      })
-  },
+  }) => api.get("/tasks/export/csv", { params, responseType: "blob" }),
 
   exportPDF: (params?: {
     status?: string
     priority?: string
     search?: string
-  }) => {
-    const token = localStorage.getItem("token")
-    const queryParams = new URLSearchParams()
-
-    if (params?.status) queryParams.append("status", params.status)
-    if (params?.priority) queryParams.append("priority", params.priority)
-    if (params?.search) queryParams.append("search", params.search)
-
-    const url = `${API_BASE_URL}/tasks/export/pdf?${queryParams.toString()}`
-
-    return fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Export failed")
-        return response.blob()
-      })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement("a")
-        link.href = url
-        link.download = `tasks-export-${new Date().toISOString().split("T")[0]}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-      })
-  },
+  }) => api.get("/tasks/export/pdf", { params, responseType: "blob" }),
 }
 
 export default api
