@@ -30,7 +30,7 @@ This is a full-stack task management application with a React frontend and a Nod
 - Task activity logging and comments
 - Export tasks to CSV and PDF formats
 - Email Notifications:
-  - Due date reminders (customizable timing)
+  - Due date reminders
   - Overdue task alerts
   - Daily task digest
 - Persistent storage with MongoDB
@@ -126,7 +126,7 @@ Before you begin, ensure you have the following installed:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/task-management-application.git
+    git clone https://github.com/MuhammadMaaz7/task-management-application
     cd task-management-application
     ```
 
@@ -312,4 +312,4 @@ Contributions are welcome! Please feel free to open issues or submit pull reques
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. (If you have a LICENSE file)
+This project is licensed under the MIT License - see the LICENSE file for details.
