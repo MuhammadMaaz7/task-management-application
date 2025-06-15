@@ -255,7 +255,7 @@ npm run dev    # Start both servers
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
+3. Make your changes and env
 4. Add tests if applicable
 5. Submit a pull request
 
