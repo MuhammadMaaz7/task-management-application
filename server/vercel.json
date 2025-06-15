@@ -8,22 +8,12 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "index.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "index.js"
     }
-  ],
-  "env": {
-    "MONGODB_URI": "@mongodb_uri",
-    "JWT_SECRET": "@jwt_secret",
-    "SMTP_HOST": "@smtp_host",
-    "SMTP_PORT": "@smtp_port",
-    "SMTP_SECURE": "@smtp_secure",
-    "SMTP_USER": "@smtp_user",
-    "SMTP_PASS": "@smtp_pass"
-  },
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
-    }
-  }
+  ]
 } 
