@@ -60,6 +60,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // ─────── Routes ───────
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+// ─────── Root Route ───────
+app.get('/', (req, res) => {
+  res.send('🚀 Backend is live!');
+});
+
 
 // ─────── Health Check ───────
 app.get('/api/health', (req, res) => {
